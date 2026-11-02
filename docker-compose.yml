@@ -1,0 +1,56 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-emoda}
+      POSTGRES_USER: ${POSTGRES_USER:-emoda}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  migrate:
+    build: .
+    image: emoda-autopost:latest
+    env_file:
+      - path: ${EMODA_ENV_FILE:-.env}
+        required: true
+    command: ["emoda", "migrate"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    stop_grace_period: 5m
+    build: .
+    image: emoda-autopost:latest
+    restart: unless-stopped
+    env_file:
+      - path: ${EMODA_ENV_FILE:-.env}
+        required: true
+    command: ["emoda", "run"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - media_data:/data/media
+      - telegram_session:/data/session
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'health_file="$${HEALTH_FILE:-/tmp/emoda-healthy}"; test -f "$$health_file" && age=$$(($$(date +%s) - $$(stat -c %Y "$$health_file"))) && test "$$age" -lt 90'
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  postgres_data:
+  media_data:
+  telegram_session:

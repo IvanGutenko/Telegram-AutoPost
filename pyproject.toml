@@ -1,0 +1,59 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "emoda-autopost"
+version = "1.0.0"
+description = "Durable Telegram supplier post processing and publication for E-MODA"
+requires-python = ">=3.12"
+dependencies = [
+  "aiogram>=3.20,<4",
+  "alembic>=1.14,<2",
+  "asyncpg>=0.30,<1",
+  "google-genai>=1.30,<2",
+  "pydantic>=2.10,<3",
+  "pydantic-settings>=2.7,<3",
+  "python-json-logger>=3.2,<4",
+  "sqlalchemy[asyncio]>=2.0.36,<3",
+  "telethon>=1.40,<2",
+  "cryptg==0.6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "aiosqlite>=0.20,<1",
+  "mypy>=1.14,<2",
+  "pytest>=8.3,<9",
+  "pytest-asyncio>=0.25,<2",
+  "pytest-cov>=6,<7",
+  "ruff>=0.9,<1",
+]
+
+[project.scripts]
+emoda = "emoda.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/emoda"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+  "integration: requires PostgreSQL or external infrastructure",
+  "live: requires paid/external credentials",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["emoda"]
+ignore_missing_imports = true
